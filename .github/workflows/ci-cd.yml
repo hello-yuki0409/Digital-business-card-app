@@ -1,0 +1,100 @@
+name: CI/CD (Production)
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  id-token: write
+
+on:
+  push:
+    branches: ["**"] # すべてのブランチでビルド・テスト
+  pull_request:
+    branches: ["**"] # すべてのPRでビルド・テスト
+  workflow_dispatch: {} # 手動で実行ボタン
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+          if-no-files-found: error
+
+  # プレビュー（PR や main 以外の push で動く）
+  deploy_preview:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref != 'refs/heads/main')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Deploy to Firebase Hosting (preview)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: digital-business-card-eb938
+          channelId: ${{ github.event_name == 'pull_request'
+            && format('pr-{0}', github.event.number)
+            || format('branch-{0}', github.ref_name) }}
+          expires: 7d
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+  # 本番（main に push されたとき or 手動実行）
+  deploy_production:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+      url: https://digital-business-card-eb938.web.app/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Deploy to Firebase Hosting (live)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: digital-business-card-eb938
+          channelId: live
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
