@@ -8,10 +8,10 @@ permissions:
 
 on:
   push:
-    branches: ["**"] # すべてのブランチでビルド・テスト
+    branches: ["**"]
   pull_request:
-    branches: ["**"] # すべてのPRでビルド・テスト
-  workflow_dispatch: {} # 手動で実行ボタン
+    branches: ["**"]
+  workflow_dispatch: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,7 +47,6 @@ jobs:
           path: dist
           if-no-files-found: error
 
-  # プレビュー（PR や main 以外の push で動く）
   deploy_preview:
     needs: build_and_test
     runs-on: ubuntu-latest
@@ -55,7 +54,11 @@ jobs:
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && github.ref != 'refs/heads/main')
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist
@@ -73,7 +76,6 @@ jobs:
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 
-  # 本番（main に push されたとき or 手動実行）
   deploy_production:
     needs: build_and_test
     runs-on: ubuntu-latest
@@ -82,9 +84,12 @@ jobs:
       github.event_name == 'workflow_dispatch'
     environment:
       name: production
-      url: https://digital-business-card-eb938.web.app/
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist
