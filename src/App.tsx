@@ -16,7 +16,7 @@ export default function App() {
         borderRadius="md"
         alignItems="center"
       >
-        <Heading size="md">React Router Demo</Heading>
+        <Heading size="md">hello</Heading>
         <Spacer />
         <Link as={RouterLink} to="/" mr={4}>
           ホーム
@@ -34,7 +34,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
-          {/* 👇 この行を追加 */}
           <Route path="/cards/:id" element={<CardDetailPage />} />
         </Routes>
       </Box>
