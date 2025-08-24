@@ -13,6 +13,7 @@ import {
   Link,
   Text,
   Divider,
+  Button,
 } from "@chakra-ui/react";
 
 export default function CardDetailPage() {
@@ -32,7 +33,6 @@ export default function CardDetailPage() {
       const u = await fetchUserWithSkills(id);
       if (!ignore) {
         setUser(u);
-        // 見つからなくてもロード中継続（仕様準拠）
         if (u) setLoading(false);
       }
     }
@@ -44,10 +44,16 @@ export default function CardDetailPage() {
 
   if (loading) {
     return (
-      <Center minH="100dvh">
+      <Center minH="100dvh" bg="brand.50">
         <VStack spacing={3}>
-          <Spinner size="lg" />
-          <Text fontSize="sm" color="gray.500">
+          <Spinner
+            size="lg"
+            thickness="3px"
+            speed="0.6s"
+            color="brand.500"
+            emptyColor="white"
+          />
+          <Text fontSize="sm" color="brand.700">
             ユーザー情報を取得中…
           </Text>
         </VStack>
@@ -57,30 +63,33 @@ export default function CardDetailPage() {
 
   // ここに来るのは user がある場合のみ（仕様のため）
   return (
-    <Center minH="100dvh" bg="gray.50" p={4}>
+    <Center minH="100dvh" bg="brand.50" p={4}>
       <VStack
-        spacing={4}
+        spacing={5}
         w="100%"
-        maxW="360px" // iPhone SE 幅想定
+        maxW="360px"
         bg="white"
+        border="1px solid"
+        borderColor="brand.200"
         borderRadius="2xl"
-        boxShadow="md"
-        p={4}
+        boxShadow="soft"
+        p={5}
         align="stretch"
       >
-        <Heading size="md" textAlign="center">
+        {/* 名前 */}
+        <Heading size="md" textAlign="center" color="brand.600">
           {user?.name}
         </Heading>
 
-        {/* 紹介文（HTMLをそのまま表示：注意！） */}
+        {/* 紹介 */}
         <Box>
-          <Heading size="sm" mb={1}>
+          <Heading size="sm" mb={2} color="brand.500">
             紹介
           </Heading>
-          <Divider mb={2} />
+          <Divider mb={3} borderColor="brand.200" />
           <Box
             fontSize="sm"
-            sx={{ "& p": { marginBottom: "0.5rem" } }}
+            color="gray.700"
             dangerouslySetInnerHTML={{ __html: user?.description ?? "" }}
           />
         </Box>
@@ -88,13 +97,13 @@ export default function CardDetailPage() {
         {/* Skills */}
         {user?.skills?.length ? (
           <Box>
-            <Heading size="sm" mb={1}>
+            <Heading size="sm" mb={2} color="brand.500">
               Skills
             </Heading>
-            <Divider mb={2} />
+            <Divider mb={3} borderColor="brand.200" />
             <HStack wrap="wrap" spacing={2}>
               {user.skills.map((s) => (
-                <Tag key={s.id} size="sm">
+                <Tag key={s.id} size="sm" variant="soft" px={3} py={1}>
                   {s.name}
                 </Tag>
               ))}
@@ -102,28 +111,38 @@ export default function CardDetailPage() {
           </Box>
         ) : null}
 
-        {/* SNS（任意登録：あるものだけ） */}
+        {/* Links */}
         {(user?.github_id || user?.qiita_id || user?.x_id) && (
           <Box>
-            <Heading size="sm" mb={1}>
+            <Heading size="sm" mb={2} color="brand.500">
               Links
             </Heading>
-            <Divider mb={2} />
-            <VStack align="start" spacing={1}>
+            <Divider mb={3} borderColor="brand.200" />
+            <VStack align="stretch" spacing={2}>
               {user.github_id && (
-                <Link href={user.github_id} isExternal>
+                <Button
+                  as={Link}
+                  href={user.github_id}
+                  isExternal
+                  variant="soft"
+                >
                   GitHub
-                </Link>
+                </Button>
               )}
               {user.qiita_id && (
-                <Link href={user.qiita_id} isExternal>
+                <Button
+                  as={Link}
+                  href={user.qiita_id}
+                  isExternal
+                  variant="soft"
+                >
                   Qiita
-                </Link>
+                </Button>
               )}
               {user.x_id && (
-                <Link href={user.x_id} isExternal>
+                <Button as={Link} href={user.x_id} isExternal variant="soft">
                   X (Twitter)
-                </Link>
+                </Button>
               )}
             </VStack>
           </Box>
