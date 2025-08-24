@@ -6,7 +6,7 @@
     "jsx": "react-jsx",
     "verbatimModuleSyntax": false,
     "esModuleInterop": true,
-    "types": ["jest", "@testing-library/jest-dom"],
+    "types": ["node", "jest", "@testing-library/jest-dom"],
     "noEmit": true
   },
   "include": ["src", "src/lib", "jest.setup.ts"]
