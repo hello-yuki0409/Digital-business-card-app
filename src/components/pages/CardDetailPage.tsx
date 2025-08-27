@@ -16,7 +16,7 @@ import {
   Button,
 } from "@chakra-ui/react";
 
-export default function CardDetailPage() {
+export const CardDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,4 +150,4 @@ export default function CardDetailPage() {
       </VStack>
     </Center>
   );
-}
+};
