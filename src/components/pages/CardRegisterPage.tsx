@@ -15,21 +15,25 @@ import {
   Text,
   Divider,
   Spinner,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { supabase } from "../../lib/supabase";
+import { useForm, Controller } from "react-hook-form";
 
 type Skill = { id: number; name: string };
 
-export const CardRegisterPage = () => {
-  const [userId, setUserId] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [githubId, setGithubId] = useState("");
-  const [qiitaId, setQiitaId] = useState("");
-  const [xId, setXId] = useState("");
+type FormValues = {
+  userId: string;
+  name: string;
+  description: string;
+  githubId?: string;
+  qiitaId?: string;
+  xId?: string;
+  selectedSkillIds: string[];
+};
 
+export const CardRegisterPage = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(true);
 
   // 初回マウント時に skills テーブルを読み込む
@@ -51,6 +55,29 @@ export const CardRegisterPage = () => {
     };
   }, []);
 
+  const {
+    register, // input/textarea などのバインド
+    handleSubmit, // 送信ハンドラをラップ
+    control, // Controller 用（CheckboxGroup など）
+    formState: { errors }, // バリデーション結果（各フィールドのエラー）
+  } = useForm<FormValues>({
+    defaultValues: {
+      userId: "",
+      name: "",
+      description: "",
+      githubId: "",
+      qiitaId: "",
+      xId: "",
+      selectedSkillIds: [], // 最初は未選択
+    },
+    mode: "onBlur", // 失焦点時にバリデーション（好みで onChange / onSubmit に変更可）
+  });
+
+  // 送信（今回はバリデーション確認だけ。次フェーズで Supabase へ insert）
+  const onSubmit = (values: FormValues) => {
+    console.log("OK form values:", values);
+  };
+
   return (
     <Container maxW="md" py={{ base: 6, md: 10 }}>
       <Heading
@@ -67,6 +94,8 @@ export const CardRegisterPage = () => {
       </Text>
 
       <VStack
+        as="form"
+        onSubmit={handleSubmit(onSubmit)}
         spacing={{ base: 4, md: 5 }}
         align="stretch"
         bg="white"
@@ -76,35 +105,42 @@ export const CardRegisterPage = () => {
         borderRadius="2xl"
         boxShadow="soft"
       >
-        <FormControl>
+        <FormControl isInvalid={!!errors.userId}>
           <FormLabel>ID（この ID で名刺ページにアクセスできます）</FormLabel>
           <Input
-            placeholder="例: hello-card"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            // register で必須＆パターン（英字のみ）を設定
+            {...register("userId", {
+              required: "IDは必須です",
+              pattern: {
+                value: /^[A-Za-z]+$/, // ← 英語文字列だけ
+                message: "IDは英字（A–Z, a–z）のみ使用できます",
+              },
+              minLength: { value: 3, message: "3文字以上で入力してください" },
+              maxLength: { value: 32, message: "32文字以内で入力してください" },
+            })}
           />
+          <FormErrorMessage>{errors.userId?.message}</FormErrorMessage>
         </FormControl>
 
-        <FormControl>
+        <FormControl isInvalid={!!errors.name}>
           <FormLabel>名前</FormLabel>
           <Input
             placeholder="例: 山田太郎"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            {...register("name", { required: "名前は必須です" })}
           />
+          <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
         </FormControl>
 
-        <FormControl>
+        <FormControl isInvalid={!!errors.name}>
           <FormLabel>自己紹介</FormLabel>
           <Textarea
             placeholder="自己紹介を入力してください（HTML可）"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
+            {...register("description")}
           />
+          <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
         </FormControl>
 
-        <FormControl>
+        <FormControl isInvalid={!!errors.selectedSkillIds}>
           <FormLabel>好きな技術（複数選択可）</FormLabel>
 
           {loadingSkills ? (
@@ -117,51 +153,51 @@ export const CardRegisterPage = () => {
           ) : (
             <>
               <Divider mb={3} borderColor="brand.200" />
-              <CheckboxGroup
-                value={selectedSkillIds}
-                onChange={(vals) => setSelectedSkillIds(vals as string[])}
-              >
-                <Stack direction="row" flexWrap="wrap" spacing={4}>
-                  {skills.map((s) => (
-                    <Checkbox key={s.id} value={String(s.id)}>
-                      {s.name}
-                    </Checkbox>
-                  ))}
-                </Stack>
-              </CheckboxGroup>
+              {/* CheckboxGroup は Controller でつなぐ.  ココ */}
+              <Controller
+                control={control}
+                name="selectedSkillIds"
+                rules={{
+                  validate: (v) =>
+                    v && v.length > 0 ? true : "最低1つは選択してください",
+                }}
+                render={({ field }) => (
+                  // field.value: string[] / field.onChange: (next: any) => void
+                  <CheckboxGroup value={field.value} onChange={field.onChange}>
+                    <Stack direction="row" flexWrap="wrap" spacing={4}>
+                      {skills.map((s) => (
+                        <Checkbox key={s.id} value={String(s.id)}>
+                          {s.name}
+                        </Checkbox>
+                      ))}
+                    </Stack>
+                  </CheckboxGroup>
+                )}
+              />
             </>
           )}
+          <FormErrorMessage>
+            {errors.selectedSkillIds?.message as string}
+          </FormErrorMessage>
         </FormControl>
 
         <FormControl>
           <FormLabel>GitHub ID</FormLabel>
-          <Input
-            placeholder="例: your-github-id"
-            value={githubId}
-            onChange={(e) => setGithubId(e.target.value)}
-          />
+          <Input placeholder="例: your-github-id" {...register("githubId")} />
         </FormControl>
 
         <FormControl>
           <FormLabel>Qiita ID</FormLabel>
-          <Input
-            placeholder="例: your-qiita-id"
-            value={qiitaId}
-            onChange={(e) => setQiitaId(e.target.value)}
-          />
+          <Input placeholder="例: your-qiita-id" {...register("qiitaId")} />
         </FormControl>
 
         <FormControl>
           <FormLabel>X (Twitter) ID</FormLabel>
-          <Input
-            placeholder="例: your-x-id"
-            value={xId}
-            onChange={(e) => setXId(e.target.value)}
-          />
+          <Input placeholder="例: your-x-id" {...register("xId")} />
         </FormControl>
 
         <Box textAlign="center" pt={2}>
-          <Button size="lg" variant="soft">
+          <Button type="submit" size="lg" variant="soft">
             登録
           </Button>
         </Box>
