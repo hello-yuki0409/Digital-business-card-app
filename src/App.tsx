@@ -5,6 +5,7 @@ import { CardRegisterPage } from "./components/pages/CardRegisterPage.tsx";
 export default function App() {
   return (
     <Routes>
+      {/* 名刺詳細は id 必須！！ */}
       <Route path="/cards/:id" element={<CardDetailPage />} />
       <Route path="/cards/register" element={<CardRegisterPage />} />
       <Route path="*" element={<Navigate to="/cards/sample_id" replace />} />

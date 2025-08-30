@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, memo, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -16,11 +16,44 @@ import {
   Divider,
   Spinner,
   FormErrorMessage,
+  Toast,
+  useToast,
 } from "@chakra-ui/react";
 import { supabase } from "../../lib/supabase";
 import { useForm, Controller } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 type Skill = { id: number; name: string };
+
+type SkillCheckboxListProps = {
+  skills: Skill[];
+  value: string[]; // Controller から渡る
+  onChange: (next: string[] | number[]) => void;
+};
+
+const SkillCheckboxList = memo(function SkillCheckboxList({
+  skills,
+  value,
+  onChange,
+}: SkillCheckboxListProps) {
+  const items = useMemo(
+    () =>
+      skills.map((s) => (
+        <Checkbox key={s.id} value={String(s.id)}>
+          {s.name}
+        </Checkbox>
+      )),
+    [skills]
+  );
+
+  return (
+    <CheckboxGroup value={value} onChange={onChange}>
+      <Stack direction="row" flexWrap="wrap" spacing={4}>
+        {items}
+      </Stack>
+    </CheckboxGroup>
+  );
+});
 
 type FormValues = {
   userId: string;
@@ -55,27 +88,94 @@ export const CardRegisterPage = () => {
     };
   }, []);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors },
-  } = useForm<FormValues>({
-    defaultValues: {
+  const defaultValues = useMemo(
+    () => ({
       userId: "",
       name: "",
       description: "",
       githubId: "",
       qiitaId: "",
       xId: "",
-      selectedSkillIds: [],
-    },
-    mode: "onBlur",
-  });
+      selectedSkillIds: [] as string[],
+    }),
+    []
+  );
 
-  const onSubmit = (values: FormValues) => {
-    console.log("OK form values:", values);
-  };
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors },
+  } = useForm<FormValues>({ defaultValues, mode: "onBlur" });
+
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        setSubmitting(true);
+        const { data: existing, error: findErr } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", values.userId)
+          .maybeSingle();
+        if (findErr) throw findErr;
+        if (existing) {
+          setError("userId", { message: "このIDはすでに使用されています" });
+          Toast({ title: "IDが使われています", status: "error" });
+          return;
+        }
+
+        const { error: userErr } = await supabase.from("users").insert([
+          {
+            id: values.userId,
+            name: values.name,
+            description: values.description,
+            github_id: values.githubId || null,
+            qiita_id: values.qiitaId || null,
+            x_id: values.xId || null,
+          },
+        ]);
+        if (userErr) throw userErr;
+
+        if (values.selectedSkillIds.length > 0) {
+          const rows = values.selectedSkillIds.map((sid) => ({
+            user_id: values.userId,
+            skill_id: Number(sid), // DBはintなのでここでだけnumberに変換
+          }));
+          const { error: linkErr } = await supabase
+            .from("user_skill")
+            .insert(rows);
+          if (linkErr) throw linkErr;
+        }
+
+        toast({ title: "登録しました", status: "success" });
+        navigate("/");
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          console.error(e.message);
+          toast({
+            title: "登録に失敗しました",
+            description: e.message,
+            status: "error",
+          });
+        } else {
+          console.error("Unknown error", e);
+          toast({
+            title: "登録に失敗しました",
+            description: "不明なエラーが発生しました",
+            status: "error",
+          });
+        }
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [navigate, setError, toast]
+  );
 
   return (
     <Container maxW="md" py={{ base: 6, md: 10 }}>
@@ -150,7 +250,7 @@ export const CardRegisterPage = () => {
           ) : (
             <>
               <Divider mb={3} borderColor="brand.200" />
-              {/* CheckboxGroup は Controller でつなぐ.  ココ */}
+              {/* CheckboxGroup は特殊だから Controller で繋ぐらしい */}
               <Controller
                 control={control}
                 name="selectedSkillIds"
@@ -158,17 +258,25 @@ export const CardRegisterPage = () => {
                   validate: (v) =>
                     v && v.length > 0 ? true : "1つは選択してください",
                 }}
-                render={({ field }) => (
-                  <CheckboxGroup value={field.value} onChange={field.onChange}>
-                    <Stack direction="row" flexWrap="wrap" spacing={4}>
-                      {skills.map((s) => (
-                        <Checkbox key={s.id} value={String(s.id)}>
-                          {s.name}
-                        </Checkbox>
-                      ))}
-                    </Stack>
-                  </CheckboxGroup>
-                )}
+                render={({ field }) =>
+                  loadingSkills ? (
+                    <Box py={3}>
+                      <Spinner size="sm" mr={2} color="brand.500" />
+                      <Text as="span" fontSize="sm" color="gray.600">
+                        技術一覧を読み込み中…
+                      </Text>
+                    </Box>
+                  ) : (
+                    <>
+                      <Divider mb={3} borderColor="brand.200" />
+                      <SkillCheckboxList
+                        skills={skills}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </>
+                  )
+                }
               />
             </>
           )}
@@ -193,7 +301,7 @@ export const CardRegisterPage = () => {
         </FormControl>
 
         <Box textAlign="center" pt={2}>
-          <Button type="submit" size="lg" variant="soft">
+          <Button type="submit" size="lg" variant="soft" isLoading={submitting}>
             登録
           </Button>
         </Box>
