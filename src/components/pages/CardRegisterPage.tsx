@@ -56,10 +56,10 @@ export const CardRegisterPage = () => {
   }, []);
 
   const {
-    register, // input/textarea などのバインド
-    handleSubmit, // 送信ハンドラをラップ
-    control, // Controller 用（CheckboxGroup など）
-    formState: { errors }, // バリデーション結果（各フィールドのエラー）
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
       userId: "",
@@ -68,12 +68,11 @@ export const CardRegisterPage = () => {
       githubId: "",
       qiitaId: "",
       xId: "",
-      selectedSkillIds: [], // 最初は未選択
+      selectedSkillIds: [],
     },
-    mode: "onBlur", // 失焦点時にバリデーション（好みで onChange / onSubmit に変更可）
+    mode: "onBlur",
   });
 
-  // 送信（今回はバリデーション確認だけ。次フェーズで Supabase へ insert）
   const onSubmit = (values: FormValues) => {
     console.log("OK form values:", values);
   };
@@ -108,11 +107,10 @@ export const CardRegisterPage = () => {
         <FormControl isInvalid={!!errors.userId}>
           <FormLabel>ID（この ID で名刺ページにアクセスできます）</FormLabel>
           <Input
-            // register で必須＆パターン（英字のみ）を設定
             {...register("userId", {
               required: "IDは必須です",
               pattern: {
-                value: /^[A-Za-z]+$/, // ← 英語文字列だけ
+                value: /^[A-Za-z]+$/,
                 message: "IDは英字（A–Z, a–z）のみ使用できます",
               },
               minLength: { value: 3, message: "3文字以上で入力してください" },
@@ -131,13 +129,12 @@ export const CardRegisterPage = () => {
           <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
         </FormControl>
 
-        <FormControl isInvalid={!!errors.name}>
+        <FormControl>
           <FormLabel>自己紹介</FormLabel>
           <Textarea
             placeholder="自己紹介を入力してください（HTML可）"
             {...register("description")}
           />
-          <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
         </FormControl>
 
         <FormControl isInvalid={!!errors.selectedSkillIds}>
@@ -159,10 +156,9 @@ export const CardRegisterPage = () => {
                 name="selectedSkillIds"
                 rules={{
                   validate: (v) =>
-                    v && v.length > 0 ? true : "最低1つは選択してください",
+                    v && v.length > 0 ? true : "1つは選択してください",
                 }}
                 render={({ field }) => (
-                  // field.value: string[] / field.onChange: (next: any) => void
                   <CheckboxGroup value={field.value} onChange={field.onChange}>
                     <Stack direction="row" flexWrap="wrap" spacing={4}>
                       {skills.map((s) => (
