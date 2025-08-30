@@ -16,7 +16,6 @@ import {
   Divider,
   Spinner,
   FormErrorMessage,
-  Toast,
   useToast,
 } from "@chakra-ui/react";
 import { supabase } from "../../lib/supabase";
@@ -125,7 +124,7 @@ export const CardRegisterPage = () => {
         if (findErr) throw findErr;
         if (existing) {
           setError("userId", { message: "このIDはすでに使用されています" });
-          Toast({ title: "IDが使われています", status: "error" });
+          toast({ title: "IDが使われています", status: "error" });
           return;
         }
 
@@ -153,7 +152,7 @@ export const CardRegisterPage = () => {
         }
 
         toast({ title: "登録しました", status: "success" });
-        navigate("/");
+        navigate(`/cards/${values.userId}`);
       } catch (e: unknown) {
         if (e instanceof Error) {
           console.error(e.message);

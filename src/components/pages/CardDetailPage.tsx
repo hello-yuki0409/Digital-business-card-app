@@ -21,7 +21,7 @@ export const CardDetailPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 仕様：idがundefined、あるいはユーザーが見つからない場合はローディングのまま
+  // idがundefined、あるいはユーザーが見つからない場合はローディングのまま
   useEffect(() => {
     let ignore = false;
     async function run() {
@@ -61,7 +61,6 @@ export const CardDetailPage = () => {
     );
   }
 
-  // ここに来るのは user がある場合のみ（仕様のため）
   return (
     <Center minH="100dvh" bg="brand.50" p={4}>
       <VStack
@@ -84,7 +83,7 @@ export const CardDetailPage = () => {
         {/* 紹介 */}
         <Box>
           <Heading size="sm" mb={2} color="brand.500">
-            紹介
+            自己紹介
           </Heading>
           <Divider mb={3} borderColor="brand.200" />
           <Box
@@ -98,7 +97,7 @@ export const CardDetailPage = () => {
         {user?.skills?.length ? (
           <Box>
             <Heading size="sm" mb={2} color="brand.500">
-              Skills
+              好きな技術
             </Heading>
             <Divider mb={3} borderColor="brand.200" />
             <HStack wrap="wrap" spacing={2}>
