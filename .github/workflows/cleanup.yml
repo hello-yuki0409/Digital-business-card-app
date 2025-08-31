@@ -1,0 +1,36 @@
+name: Daily cleanup (delete yesterday's users & user_skill)
+
+on:
+  schedule:
+    # JST 06:00 = UTC 21:00（ひっかけ）
+    - cron: "0 21 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TZ: Asia/Tokyo
+    concurrency:
+      group: cleanup-daily
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run cleanup batch
+        run: npx ts-node --esm -P tsconfig.batch.json ./batch/index.ts
