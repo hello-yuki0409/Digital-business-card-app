@@ -206,7 +206,7 @@ export const CardRegisterPage = () => {
               required: "IDは必須です",
               pattern: {
                 value: /^[A-Za-z]+$/,
-                message: "IDは英字（A–Z, a–z）のみ使用できます",
+                message: "IDは半角英字のみ使用できます(大文字も可)",
               },
               minLength: { value: 3, message: "3文字以上で入力してください" },
               maxLength: { value: 32, message: "32文字以内で入力してください" },
@@ -233,6 +233,7 @@ export const CardRegisterPage = () => {
         </FormControl>
 
         <FormControl isInvalid={!!errors.selectedSkillIds}>
+          {/* FormLabel 部分をクリックすると React が選択されるな、後々対応する。 */}
           <FormLabel>好きな技術（複数選択可）</FormLabel>
 
           {loadingSkills ? (

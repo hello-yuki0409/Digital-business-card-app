@@ -92,13 +92,7 @@ export const HomePage = () => {
               />
               <FormErrorMessage>{error}</FormErrorMessage>
             </FormControl>
-            <Button
-              type="submit"
-              size="lg"
-              variant="soft"
-              isDisabled={!id.trim()}
-              isLoading={loading}
-            >
+            <Button type="submit" size="lg" variant="soft" isLoading={loading}>
               名刺を見る
             </Button>
 
