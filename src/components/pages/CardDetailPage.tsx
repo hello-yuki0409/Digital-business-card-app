@@ -10,11 +10,14 @@ import {
   Heading,
   Tag,
   HStack,
-  Link,
   Text,
   Divider,
   Button,
+  Tooltip,
+  IconButton,
 } from "@chakra-ui/react";
+import { FaGithub, FaXTwitter } from "react-icons/fa6";
+import { SiQiita } from "react-icons/si";
 
 export const CardDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -95,13 +98,14 @@ export const CardDetailPage = () => {
           />
         </Box>
 
-        {/* Skills */}
+        {/* 好きな技術 */}
         {user?.skills?.length ? (
           <Box>
             <Heading size="sm" mb={2} color="brand.500">
               好きな技術
             </Heading>
             <Divider mb={3} borderColor="brand.200" />
+
             <HStack wrap="wrap" spacing={2}>
               {user.skills.map((s) => (
                 <Tag key={s.id} size="sm" variant="soft" px={3} py={1}>
@@ -115,37 +119,55 @@ export const CardDetailPage = () => {
         {/* Links */}
         {(user?.github_id || user?.qiita_id || user?.x_id) && (
           <Box>
-            <Heading size="sm" mb={2} color="brand.500">
+            <Heading size="sm" mb={1} color="brand.500">
               Links
             </Heading>
-            <Divider mb={3} borderColor="brand.200" />
-            <VStack align="stretch" spacing={2}>
+            <Divider mb={2} borderColor="brand.200" />
+
+            <HStack spacing={4}>
               {user.github_id && (
-                <Button
-                  as={Link}
-                  href={user.github_id}
-                  isExternal
-                  variant="soft"
-                >
-                  GitHub
-                </Button>
+                <Tooltip label="GitHub">
+                  <IconButton
+                    as="a"
+                    href={user.github_id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub"
+                    icon={<FaGithub />}
+                    variant="ghost"
+                    fontSize="24px"
+                  />
+                </Tooltip>
               )}
               {user.qiita_id && (
-                <Button
-                  as={Link}
-                  href={user.qiita_id}
-                  isExternal
-                  variant="soft"
-                >
-                  Qiita
-                </Button>
+                <Tooltip label="Qiita">
+                  <IconButton
+                    as="a"
+                    href={user.qiita_id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Qiita"
+                    icon={<SiQiita />}
+                    variant="ghost"
+                    fontSize="24px"
+                  />
+                </Tooltip>
               )}
               {user.x_id && (
-                <Button as={Link} href={user.x_id} isExternal variant="soft">
-                  X (Twitter)
-                </Button>
+                <Tooltip label="X (Twitter)">
+                  <IconButton
+                    as="a"
+                    href={user.x_id}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="X (Twitter)"
+                    icon={<FaXTwitter />}
+                    variant="ghost"
+                    fontSize="24px"
+                  />
+                </Tooltip>
               )}
-            </VStack>
+            </HStack>
           </Box>
         )}
         <Box pt={2} textAlign="center">
