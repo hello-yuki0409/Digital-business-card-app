@@ -26,5 +26,8 @@ dist-ssr
 # .envファイルがpushされないようにする
 /.env
 
-# Firebase service account keys
+# Firebase service account keys をミスってコミットしないため
 *.json
+
+# tsconfig.batch.json を生かす
+!tsconfig.batch.json
