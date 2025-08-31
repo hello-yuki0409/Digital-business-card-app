@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { fetchUserWithSkills } from "../../lib/user";
 import type { User } from "../../types/user";
 import {
@@ -20,6 +20,8 @@ export const CardDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   // idがundefined、あるいはユーザーが見つからない場合はローディングのまま
   useEffect(() => {
@@ -146,6 +148,11 @@ export const CardDetailPage = () => {
             </VStack>
           </Box>
         )}
+        <Box pt={2} textAlign="center">
+          <Button variant="soft" onClick={() => navigate("/")}>
+            ホームに戻る
+          </Button>
+        </Box>
       </VStack>
     </Center>
   );
