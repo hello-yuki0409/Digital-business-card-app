@@ -13,7 +13,6 @@ import {
   CheckboxGroup,
   Stack,
   Text,
-  Divider,
   Spinner,
   FormErrorMessage,
   useToast,
@@ -187,10 +186,6 @@ export const CardRegisterPage = () => {
         名刺新規登録
       </Heading>
 
-      <Text fontSize="sm" color="gray.600" textAlign="center" mb={4}>
-        ID は英単語で入力してください
-      </Text>
-
       <VStack
         as="form"
         onSubmit={handleSubmit(onSubmit)}
@@ -206,6 +201,7 @@ export const CardRegisterPage = () => {
         <FormControl isInvalid={!!errors.userId}>
           <FormLabel>ID（この ID で名刺ページにアクセスできます）</FormLabel>
           <Input
+            placeholder="ID は半角英字で入力してください"
             {...register("userId", {
               required: "IDは必須です",
               pattern: {
@@ -248,7 +244,6 @@ export const CardRegisterPage = () => {
             </Box>
           ) : (
             <>
-              <Divider mb={3} borderColor="brand.200" />
               {/* CheckboxGroup は特殊だから Controller で繋ぐらしい */}
               <Controller
                 control={control}
@@ -267,7 +262,6 @@ export const CardRegisterPage = () => {
                     </Box>
                   ) : (
                     <>
-                      <Divider mb={3} borderColor="brand.200" />
                       <SkillCheckboxList
                         skills={skills}
                         value={field.value}
@@ -286,17 +280,17 @@ export const CardRegisterPage = () => {
 
         <FormControl>
           <FormLabel>GitHub ID</FormLabel>
-          <Input placeholder="例: your-github-id" {...register("githubId")} />
+          <Input placeholder="例: hello-yuki0409" {...register("githubId")} />
         </FormControl>
 
         <FormControl>
           <FormLabel>Qiita ID</FormLabel>
-          <Input placeholder="例: your-qiita-id" {...register("qiitaId")} />
+          <Input placeholder="例: Uyuki_0409" {...register("qiitaId")} />
         </FormControl>
 
         <FormControl>
           <FormLabel>X (Twitter) ID</FormLabel>
-          <Input placeholder="例: your-x-id" {...register("xId")} />
+          <Input placeholder="例: weblogv2" {...register("xId")} />
         </FormControl>
 
         <Box textAlign="center" pt={2}>
