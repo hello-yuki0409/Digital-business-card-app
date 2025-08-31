@@ -9,6 +9,7 @@ import {
   Text,
   VStack,
   Link,
+  Center,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
@@ -57,56 +58,58 @@ export const HomePage = () => {
   };
 
   return (
-    <Container maxW="md" py={{ base: 6, md: 10 }}>
-      <Heading
-        mb={{ base: 4, md: 6 }}
-        textAlign="center"
-        size="lg"
-        color="brand.600"
-      >
-        デジタル名刺アプリ
-      </Heading>
-      <form onSubmit={onSubmit}>
-        <VStack
-          spacing={{ base: 4, md: 5 }}
-          align="stretch"
-          bg="white"
-          p={{ base: 4, md: 6 }}
-          border="1px solid"
-          borderColor="brand.200"
-          borderRadius="2xl"
-          boxShadow="soft"
+    <Center minH="100dvh" bg="brand.50" p={4}>
+      <Container maxW="md" py={{ base: 6, md: 10 }}>
+        <Heading
+          mb={{ base: 4, md: 6 }}
+          textAlign="center"
+          size="lg"
+          color="brand.600"
         >
-          <FormControl isInvalid={!!error}>
-            <FormLabel>ID</FormLabel>
-            <Input
-              placeholder="設定したIDを入力"
-              value={id}
-              onChange={(e) => {
-                setId(e.target.value);
-                if (error) setError("");
-              }}
-              autoComplete="off"
-            />
-            <FormErrorMessage>{error}</FormErrorMessage>
-          </FormControl>
-          <Button
-            type="submit"
-            size="lg"
-            variant="soft"
-            isDisabled={!id.trim()}
-            isLoading={loading}
+          デジタル名刺アプリ
+        </Heading>
+        <form onSubmit={onSubmit}>
+          <VStack
+            spacing={{ base: 4, md: 5 }}
+            align="stretch"
+            bg="white"
+            p={{ base: 4, md: 6 }}
+            border="1px solid"
+            borderColor="brand.200"
+            borderRadius="2xl"
+            boxShadow="soft"
           >
-            名刺を見る
-          </Button>
+            <FormControl isInvalid={!!error}>
+              <FormLabel>ID</FormLabel>
+              <Input
+                placeholder="設定したIDを入力"
+                value={id}
+                onChange={(e) => {
+                  setId(e.target.value);
+                  if (error) setError("");
+                }}
+                autoComplete="off"
+              />
+              <FormErrorMessage>{error}</FormErrorMessage>
+            </FormControl>
+            <Button
+              type="submit"
+              size="lg"
+              variant="soft"
+              isDisabled={!id.trim()}
+              isLoading={loading}
+            >
+              名刺を見る
+            </Button>
 
-          <Text fontSize="sm" color="gray.600" textAlign="center" mb={0}>
-            <Link as={RouterLink} to="/cards/register" color="brand.700">
-              名刺を登録する
-            </Link>
-          </Text>
-        </VStack>
-      </form>
-    </Container>
+            <Text fontSize="sm" color="gray.600" textAlign="center" mb={0}>
+              <Link as={RouterLink} to="/cards/register" color="brand.700">
+                名刺を登録する
+              </Link>
+            </Text>
+          </VStack>
+        </form>
+      </Container>
+    </Center>
   );
 };
