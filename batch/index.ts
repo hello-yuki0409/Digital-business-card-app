@@ -1,109 +1,67 @@
+import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const supabaseUrl = process.env.SUPABASE_URL ?? "";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-function assertEnv(name: string, val: string) {
-  if (!val) {
-    console.error(`[FATAL] Missing env: ${name}`);
-    process.exit(1);
-  }
-}
-assertEnv("SUPABASE_URL", SUPABASE_URL);
-assertEnv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
-
-// Service Role で管理削除を実行
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-// JST(UTC+9) の 昨日 00:00〜23:59:59.999 を UTC に変換して返す
-function getYesterdayRangeUtc(): { startUtcIso: string; endUtcIso: string } {
-  const JST_OFFSET_MIN = 9 * 60;
-  const nowJst = new Date(Date.now() + JST_OFFSET_MIN * 60_000);
-  const y = nowJst.getFullYear();
-  const m = nowJst.getMonth();
-  const d = nowJst.getDate();
-
-  // 昨日(JST)
-  const startJst = new Date(y, m, d - 1, 0, 0, 0, 0);
-  const endJst = new Date(y, m, d - 1, 23, 59, 59, 999);
-
-  // JST -> UTC
-  const startUtc = new Date(startJst.getTime() - JST_OFFSET_MIN * 60_000);
-  const endUtc = new Date(endJst.getTime() - JST_OFFSET_MIN * 60_000);
-
-  return {
-    startUtcIso: startUtc.toISOString(),
-    endUtcIso: endUtc.toISOString(),
-  };
-}
-
-async function main(): Promise<void> {
-  const { startUtcIso, endUtcIso } = getYesterdayRangeUtc();
-  // かくにんよう
-  console.log(
-    `[INFO] Deleting records created between ${startUtcIso} ~ ${endUtcIso} (UTC)`
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error(
+    "[FATAL] Missing env: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY"
   );
+  process.exit(1);
+}
 
-  // 昨日作成の users を取得
-  const { data: users, error: usersSelErr } = await supabase
+const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+// JSTからUTCへ変換。昨日の日付だけを削除対象にする
+function getYesterdayRangeUtc(): { startUtc: Date; endUtc: Date } {
+  const now = new Date();
+  const JST_OFFSET = 9 * 60 * 60 * 1000;
+
+  // JST 昨日の0:00
+  const jstYesterdayStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  jstYesterdayStart.setHours(0, 0, 0, 0);
+
+  // JST 昨日の23:59:59
+  const jstYesterdayEnd = new Date(jstYesterdayStart);
+  jstYesterdayEnd.setHours(23, 59, 59, 999);
+
+  // UTCにトランスフォーム
+  const startUtc = new Date(jstYesterdayStart.getTime() - JST_OFFSET);
+  const endUtc = new Date(jstYesterdayEnd.getTime() - JST_OFFSET);
+
+  return { startUtc, endUtc };
+}
+
+async function main() {
+  const { startUtc, endUtc } = getYesterdayRangeUtc();
+  console.log("[INFO] Deleting records created between", startUtc, "~", endUtc);
+
+  // usersテーブル削除する処理
+  const { error: usersError } = await supabase
     .from("users")
-    .select("id, created_at")
-    .gte("created_at", startUtcIso)
-    .lte("created_at", endUtcIso);
+    .delete()
+    .gte("created_at", startUtc.toISOString())
+    .lte("created_at", endUtc.toISOString());
 
-  if (usersSelErr) {
-    console.error("[ERROR] users select:", usersSelErr);
-    process.exit(1);
+  if (usersError) {
+    console.error("[ERROR] users delete:", usersError);
+    return;
   }
 
-  const userIds: string[] = (users ?? []).map((u: { id: string }) => u.id);
-  console.log(`[INFO] Target users: ${userIds.length}`);
-
-  // 対象ユーザーの user_skill を削除
-  if (userIds.length > 0) {
-    const { error: usDelByUserErr } = await supabase
-      .from("user_skill")
-      .delete()
-      .in("user_id", userIds);
-
-    if (usDelByUserErr) {
-      console.error("[ERROR] user_skill delete by user_id:", usDelByUserErr);
-      process.exit(1);
-    }
-    console.log(
-      `[INFO] Deleted user_skill by user_id for ${userIds.length} users.`
-    );
-  }
-
-  // 一応昨日作った user_skill も削除
-  const { error: usDelByDateErr } = await supabase
+  // user_skillテーブル削除
+  const { error: skillsError } = await supabase
     .from("user_skill")
     .delete()
-    .gte("created_at", startUtcIso)
-    .lte("created_at", endUtcIso);
+    .gte("created_at", startUtc.toISOString())
+    .lte("created_at", endUtc.toISOString());
 
-  if (usDelByDateErr) {
-    console.error("[ERROR] user_skill delete by date:", usDelByDateErr);
-    process.exit(1);
-  }
-  console.log("[INFO] Deleted user_skill by created_at range (safety pass).");
-
-  // 昨日作成した users を削除
-  const { error: usersDelErr } = await supabase
-    .from("users")
-    .delete()
-    .gte("created_at", startUtcIso)
-    .lte("created_at", endUtcIso);
-
-  if (usersDelErr) {
-    console.error("[ERROR] users delete:", usersDelErr);
-    process.exit(1);
+  if (skillsError) {
+    console.error("[ERROR] user_skill delete:", skillsError);
+    return;
   }
 
   console.log("[SUCCESS] Cleanup completed.");
 }
 
-main().catch((e) => {
-  console.error("[FATAL] Uncaught error:", e);
-  process.exit(1);
-});
+main();
