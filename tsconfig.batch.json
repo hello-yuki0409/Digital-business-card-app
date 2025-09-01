@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "types": ["node"],
+    "moduleResolution": "NodeNext",
+    "types": ["node", "luxon"],
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "outDir": "dist-batch"
   },
   "include": ["batch/**/*.ts"]

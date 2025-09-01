@@ -1,54 +1,62 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { DateTime } from "luxon";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const DRY_RUN = process.env.DRY_RUN === "1";
 
-if (!supabaseUrl || !serviceRoleKey) {
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("[FATAL] Missing env SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
   process.exit(1);
 }
 
 type UserRow = { id: string; created_at: string };
 
-function getYesterdayRangeUtc(): { startUtc: Date; endUtc: Date } {
-  const now = new Date(); // 現在(UTC)
-  const JST_OFFSET = 9 * 60 * 60 * 1000;
+// Luxon の toISO() は string | null を返すので安全にラップ
+function toIsoOrThrow(dt: DateTime): string {
+  const s = dt.toUTC().toISO();
+  if (!s) throw new Error("Failed to format ISO from DateTime");
+  return s;
+}
 
-  // JST 昨日の 0:00
-  const jstYesterdayStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  jstYesterdayStart.setHours(0, 0, 0, 0);
-
-  // JST 昨日の 23:59:59.999
-  const jstYesterdayEnd = new Date(jstYesterdayStart);
-  jstYesterdayEnd.setHours(23, 59, 59, 999);
-
-  // UTC に変換
-  const startUtc = new Date(jstYesterdayStart.getTime() - JST_OFFSET);
-  const endUtc = new Date(jstYesterdayEnd.getTime() - JST_OFFSET);
-
-  return { startUtc, endUtc };
+// JST 昨日0:00 ～ 今日0:00（[start, end)）をUTC ISOで返す
+function getYesterdayRangeUtc(): { startIso: string; endExclusiveIso: string } {
+  const zone = "Asia/Tokyo";
+  const startJst = DateTime.now()
+    .setZone(zone)
+    .minus({ days: 1 })
+    .startOf("day");
+  const endExclusiveJst = startJst.plus({ days: 1 }); // 今日0:00 JST（排他的終端）
+  return {
+    startIso: toIsoOrThrow(startJst),
+    endExclusiveIso: toIsoOrThrow(endExclusiveJst),
+  };
 }
 
 async function main() {
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { startUtc, endUtc } = getYesterdayRangeUtc();
-  const startIso = startUtc.toISOString();
-  const endIso = endUtc.toISOString();
-
+  const { startIso, endExclusiveIso } = getYesterdayRangeUtc();
   console.info(
-    `[INFO] Target window (UTC): ${startIso} ~ ${endIso}  (JST 昨日1日分)`
+    `[INFO] Deleting records created between (UTC): ${startIso} ~ ${endExclusiveIso} [start, end)`
+  );
+  console.info(
+    `[INFO] (JST表示) ${DateTime.fromISO(startIso)
+      .setZone("Asia/Tokyo")
+      .toISO()} ~ ${DateTime.fromISO(endExclusiveIso)
+      .setZone("Asia/Tokyo")
+      .toISO()}`
   );
 
+  // 昨日に作成された users を抽出
   const { data: users, error: selectErr } = await supabase
     .from("users")
     .select("id, created_at")
     .gte("created_at", startIso)
-    .lte("created_at", endIso);
+    .lt("created_at", endExclusiveIso);
 
   if (selectErr) {
     console.error("[ERROR] users select failed:", selectErr);
@@ -71,10 +79,11 @@ async function main() {
   }
 
   if (DRY_RUN) {
-    console.warn("[DRY_RUN] Skipped deletion.");
+    console.warn("[DRY_RUN] Matched but skip deletion.");
     return;
   }
 
+  // 先に子テーブル user_skill を削除（CASCADE があるなら不要）
   const { error: delUserSkillErr, count: delUserSkillCount } = await supabase
     .from("user_skill")
     .delete({ count: "exact" })
@@ -86,6 +95,7 @@ async function main() {
   }
   console.info(`[INFO] Deleted user_skill rows: ${delUserSkillCount ?? 0}`);
 
+  // 親テーブル users を削除
   const { error: delUsersErr, count: delUsersCount } = await supabase
     .from("users")
     .delete({ count: "exact" })
