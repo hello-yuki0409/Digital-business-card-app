@@ -2,7 +2,7 @@ name: Cleanup Batch
 
 on:
   schedule:
-    - cron: "0 21 * * *" # JST 6時 = UTC 前日21時
+    - cron: "*/5 * * * *" # JST 6時 = UTC 前日21時
   workflow_dispatch:
 
 jobs:
