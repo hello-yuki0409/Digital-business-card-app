@@ -80,7 +80,7 @@ export const HomePage = () => {
             boxShadow="soft"
           >
             <FormControl isInvalid={!!error}>
-              <FormLabel>ID</FormLabel>
+              <FormLabel>設定したID</FormLabel>
               <Input
                 placeholder="設定したIDを入力"
                 value={id}

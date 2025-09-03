@@ -191,12 +191,14 @@ export const CardRegisterPage = () => {
         <FormControl isInvalid={!!errors.userId}>
           <FormLabel>ID（この ID で名刺ページにアクセスできます）</FormLabel>
           <Input
-            placeholder="ID は半角英字で入力してください"
+            placeholder="半角英数字・ハイフン・アンダースコアが使用可"
+            _placeholder={{ fontSize: "sm" }}
             {...register("userId", {
               required: "IDは必須です",
               pattern: {
-                value: /^[A-Za-z]+$/,
-                message: "IDは半角英字のみ使用できます(大文字も可)",
+                value: /^[A-Za-z0-9_-]+$/,
+                message:
+                  "ID は半角英数字・ハイフン・アンダースコアのみ使用できます",
               },
               minLength: { value: 3, message: "3文字以上で入力してください" },
               maxLength: { value: 32, message: "32文字以内で入力してください" },
