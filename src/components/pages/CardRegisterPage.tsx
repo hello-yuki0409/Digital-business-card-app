@@ -1,4 +1,4 @@
-import { useCallback, useEffect, memo, useMemo, useState } from "react";
+import { useEffect, memo, useState } from "react";
 import {
   Box,
   Button,
@@ -34,15 +34,11 @@ const SkillCheckboxList = memo(function SkillCheckboxList({
   value,
   onChange,
 }: SkillCheckboxListProps) {
-  const items = useMemo(
-    () =>
-      skills.map((s) => (
-        <Checkbox key={s.id} value={String(s.id)}>
-          {s.name}
-        </Checkbox>
-      )),
-    [skills]
-  );
+  const items = skills.map((s) => (
+    <Checkbox key={s.id} value={String(s.id)}>
+      {s.name}
+    </Checkbox>
+  ));
 
   return (
     <CheckboxGroup value={value} onChange={onChange}>
@@ -86,18 +82,15 @@ export const CardRegisterPage = () => {
     };
   }, []);
 
-  const defaultValues = useMemo(
-    () => ({
-      userId: "",
-      name: "",
-      description: "",
-      githubId: "",
-      qiitaId: "",
-      xId: "",
-      selectedSkillIds: [] as string[],
-    }),
-    []
-  );
+  const defaultValues: FormValues = {
+    userId: "",
+    name: "",
+    description: "",
+    githubId: "",
+    qiitaId: "",
+    xId: "",
+    selectedSkillIds: [],
+  };
 
   const {
     register,
@@ -111,69 +104,66 @@ export const CardRegisterPage = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = useCallback(
-    async (values: FormValues) => {
-      try {
-        setSubmitting(true);
-        const { data: existing, error: findErr } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", values.userId)
-          .maybeSingle();
-        if (findErr) throw findErr;
-        if (existing) {
-          setError("userId", { message: "このIDはすでに使用されています" });
-          toast({ title: "IDが使われています", status: "error" });
-          return;
-        }
-
-        const { error: userErr } = await supabase.from("users").insert([
-          {
-            id: values.userId,
-            name: values.name,
-            description: values.description,
-            github_id: values.githubId || null,
-            qiita_id: values.qiitaId || null,
-            x_id: values.xId || null,
-          },
-        ]);
-        if (userErr) throw userErr;
-
-        if (values.selectedSkillIds.length > 0) {
-          const rows = values.selectedSkillIds.map((sid) => ({
-            user_id: values.userId,
-            skill_id: Number(sid), // DBはintなのでここでだけnumberに変換
-          }));
-          const { error: linkErr } = await supabase
-            .from("user_skill")
-            .insert(rows);
-          if (linkErr) throw linkErr;
-        }
-
-        toast({ title: "登録しました", status: "success" });
-        navigate(`/cards/${values.userId}`);
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          console.error(e.message);
-          toast({
-            title: "登録に失敗しました",
-            description: e.message,
-            status: "error",
-          });
-        } else {
-          console.error("Unknown error", e);
-          toast({
-            title: "登録に失敗しました",
-            description: "不明なエラーが発生しました",
-            status: "error",
-          });
-        }
-      } finally {
-        setSubmitting(false);
+  const onSubmit = async (values: FormValues) => {
+    try {
+      setSubmitting(true);
+      const { data: existing, error: findErr } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", values.userId)
+        .maybeSingle();
+      if (findErr) throw findErr;
+      if (existing) {
+        setError("userId", { message: "このIDはすでに使用されています" });
+        toast({ title: "IDが使われています", status: "error" });
+        return;
       }
-    },
-    [navigate, setError, toast]
-  );
+
+      const { error: userErr } = await supabase.from("users").insert([
+        {
+          id: values.userId,
+          name: values.name,
+          description: values.description,
+          github_id: values.githubId || null,
+          qiita_id: values.qiitaId || null,
+          x_id: values.xId || null,
+        },
+      ]);
+      if (userErr) throw userErr;
+
+      if (values.selectedSkillIds.length > 0) {
+        const rows = values.selectedSkillIds.map((sid) => ({
+          user_id: values.userId,
+          skill_id: Number(sid), // DBはintなのでここでだけnumberに変換
+        }));
+        const { error: linkErr } = await supabase
+          .from("user_skill")
+          .insert(rows);
+        if (linkErr) throw linkErr;
+      }
+
+      toast({ title: "登録しました", status: "success" });
+      navigate(`/cards/${values.userId}`);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        console.error(e.message);
+        toast({
+          title: "登録に失敗しました",
+          description: e.message,
+          status: "error",
+        });
+      } else {
+        console.error("Unknown error", e);
+        toast({
+          title: "登録に失敗しました",
+          description: "不明なエラーが発生しました",
+          status: "error",
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Container maxW="md" py={{ base: 6, md: 10 }}>
@@ -253,24 +243,13 @@ export const CardRegisterPage = () => {
                   validate: (v) =>
                     v && v.length > 0 ? true : "1つは選択してください",
                 }}
-                render={({ field }) =>
-                  loadingSkills ? (
-                    <Box py={3}>
-                      <Spinner size="sm" mr={2} color="brand.500" />
-                      <Text as="span" fontSize="sm" color="gray.600">
-                        技術一覧を読み込み中…
-                      </Text>
-                    </Box>
-                  ) : (
-                    <>
-                      <SkillCheckboxList
-                        skills={skills}
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </>
-                  )
-                }
+                render={({ field }) => (
+                  <SkillCheckboxList
+                    skills={skills}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
             </>
           )}
